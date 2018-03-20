@@ -1,0 +1,10 @@
+package-lock.json
+*~
+*.swp
+*.swo
+bin/nodebuild
+bin/nimcache/
+build/
+node_modules/
+nimcache/
+binding.gyp

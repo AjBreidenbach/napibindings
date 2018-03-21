@@ -1,54 +1,51 @@
 ### use projectfile.json for linking option
 ##
-import json, docopt, os
+import json, docopt, os, sequtils
 
 
 const doc = """
 NodeBuild.
 
 Usage:
-  nodebuild debug <projectfile> <nimcache> [options]
-  nodebuild release <projectfile> <nimcache> [options]
+  nodebuild <projectfile> <nimcache> [options]
 
-  -c  compile projectfile
-  -l  link into .node file
 """
-
-
-
 let args = docopt(doc)
 
-if args["-c"]:
-  discard execShellCmd "nim c -c --compileOnly --noMain " & $args["<projectfile>"]
+var 
+  nimbase = (findExe("nim") /../ "" /../ "lib")
+  nimcache = $args["<nimcache>"]
+  projectfile = $args["<projectfile>"]
+  target = %* { "target_name": "target" }
+  gyp = %* { "targets": [target] }
 
-var target = %*
-  { "target_name": "target" }
 
-var nimbase = (findExe("nim") /../ "" /../ "lib")
+
+#[if not args["--C"]:
+  var releaseFlag = if args["--r"]: " -d:release " else: ""
+  discard execShellCmd("nim c -c" & releaseFlag & "--compileOnly --noMain " & projectfile)
+  ]#
+  
+discard execShellCmd("nim c -c --compileOnly --noMain " & projectfile) #
+
 
 
 target["include_dirs"] = %[ nimbase ]
 target["cflags"] = %["-w"]
-if args["release"]: target["cflags"].add(%"-O3")
+#if args["--r"]: target["cflags"].add(%"-O3")
 target["linkflags"] = %["-ldl"]
 
 
-var compiledpf = ($args["<projectfile>"]).changeFileExt(".c")
+var compiledpf = (projectfile).changeFileExt(".c")
 
-target["sources"] = %[$args["<nimcache>"] / compiledpf ]
+target["sources"] = %[]
+for targetobj in parsejson(readfile(nimcache / (projectfile.splitFile.name & ".json")))["link"]:
+  target["sources"].add(% (nimcache / targetobj.getstr.splitFile.name & ".c"))
 
-for filekind, srcfile in walkdir(getCurrentDir() / $args["<nimcache>"]):
-  if srcfile.extractFilename != compiledpf and srcfile.splitFile.ext == ".c":
-    target["sources"].add %($args["<nimcache>"] / srcfile.extractFilename)
-
-
-var gyp = %*
- {
-  "targets": [ target ]
- }
 
 writeFile("binding.gyp", gyp.pretty)
 
 
-if args["-l"]:
-  discard execShellCmd "node-gyp rebuild"
+#if not args["--N"]:
+  #discard execShellCmd "node-gyp rebuild"
+discard execShellCmd "node-gyp rebuild"

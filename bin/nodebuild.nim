@@ -5,10 +5,8 @@ import json, docopt, os, sequtils
 
 const doc = """
 NodeBuild.
-
 Usage:
   nodebuild <projectfile> <nimcache> [options]
-
 """
 let args = docopt(doc)
 

@@ -1,3 +1,3 @@
 var addon = require('bindings')('target')
-console.log(addon.cushy("fuck"));
+console.log(addon.fib(10));
 

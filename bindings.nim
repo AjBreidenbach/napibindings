@@ -65,10 +65,12 @@ proc getStr*(n: NapiNode, bufsize: int = 40): string =
 proc newNodeValue*(val: napi_value, env: napi_env): NapiNode =
   NapiNode(val: val, env: env, descriptors: @[])
 
+proc kind*(env: napi_env, val: napi_value): NapiKind =
+  proc napi_typeof (e: napi_env, v: napi_value, res: ptr NapiKind): int{.header: "<node_api.h>".}
+  assess ( napi_typeof(env, val, addr result) )
 
 proc kind*(val: NapiNode): NapiKind =
-  proc napi_typeof (e: napi_env, v: napi_value, res: ptr NapiKind): int{.header: "<node_api.h>".}
-  assess ( napi_typeof(val.env, val.val, addr result) )
+  kind(val.env, val.val)
 
 #proc napi_create_array
 
@@ -86,7 +88,7 @@ proc create(env: napi_env, n: int32): napi_value =
   proc napi_create_int32(env: napi_env, n: cint, val: ptr napi_value): int {.header:"<node_api.h>".}
   assess ( napi_create_int32(env, n, addr result) )
 
-proc create(env: napi_env, n: int64): napi_value =
+proc create*(env: napi_env, n: int64): napi_value =
   proc napi_create_int64(env: napi_env, n: int64, val: ptr napi_value): int {.header:"<node_api.h>".}
   assess ( napi_create_int64(env, n, addr result) )
 
@@ -102,13 +104,45 @@ proc create(env: napi_env, n: float64): napi_value =
   proc napi_create_double(env: napi_env, n: float64, val: ptr napi_value): int {.header:"<node_api.h>".}
   assess ( napi_create_double(env, n, addr result) )
 
-proc create(env: napi_env, s: string): napi_value =
+proc create*(env: napi_env, s: string): napi_value =
   proc napi_create_string_utf8(env: napi_env, str: cstring, length: csize, val: ptr napi_value): int {.header:"<node_api.h>".}
   assess ( napi_create_string_utf8(env, s, s.len, addr result) )
+
+proc create*(env: napi_env, p: openarray[(string, napi_value)]): napi_value =
+  proc napi_create_object(env: napi_env, res: ptr napi_value): int {.header:"<node_api.h>".}
+  proc napi_set_named_property(env: napi_env, obj: napi_value, utf8name: cstring, value: napi_value): int {.header:"<node_api.h>".}
+  assess napi_create_object(env, addr result)
+  for name, val in items(p):
+    assess napi_set_named_property(env, result, name, val)
+
+
+proc create*(env: napi_env, a: openarray[napi_value]): napi_value =
+  proc napi_create_array_with_length(e: napi_env, length: csize, res: ptr napi_value): int {.header:"<node_api.h>".}
+  proc napi_set_element(e: napi_env, o: napi_value, index: csize, value: napi_value): int {.header:"<node_api.h>".}
+  assess( napi_create_array_with_length(env, a.len, addr result) )
+  var counter = 0
+  for elem in a:
+    assess napi_set_element(env, result, counter, a[counter])
+    counter += 1
+
+
+proc hasOwnProperty*(env: napi_env, obj: napi_value, key: string): bool =
+    assert kind(env, obj) == napi_object, "value is not an object"
+    proc napi_has_own_property(env: napi_env, obj: napi_value, key: napi_value, res: ptr bool): int {.header:"<node_api.h>".}
+    assess napi_has_own_property(env, obj, env.create(key), addr result)
+
+
+proc getProperty*(env: napi_env, obj: napi_value, key: string): napi_value =
+  assert hasOwnProperty(env, obj, key), "property not contained"
+  proc napi_get_named_property(env: napi_env, obj: napi_value, name: cstring, res: ptr napi_value): int {.header:"<node_api.h>".}
+  assess napi_get_named_property(env, obj, key, addr result)
+
+
 
 proc createFn(env: napi_env, fname: string, cb: napi_callback): napi_value =
   proc napi_create_function(env: napi_env, utf8name: cstring, length: csize, cb: napi_callback, data: pointer, res: napi_value): int {.importc, nodecl.}
   assess ( napi_create_function(env, fname, fname.len, cb, nil, addr result) )
+
 
 
 proc registerBase(obj: NapiNode, name: string, value: napi_value, attr: int) =
@@ -143,8 +177,6 @@ template registerFn*(exports: NapiNode, name: string, paramCt = 10, cushy: untyp
       cushy
     exports.register(name, wrapper)
 
-
-
 proc defineProperties*(obj: NapiNode) =
   type DescriptorArray {.unchecked.} = array[0..0, napi_property_descriptor]
 
@@ -160,7 +192,6 @@ proc defineProperties*(obj: NapiNode) =
 
 
 ### high level bindings ###
-
 
 macro init*(initHook: proc(exports: NapiNode)): typed =
   var nimmain = newProc(ident("NimMain"))

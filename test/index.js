@@ -1,3 +1,3 @@
 var addon = require('bindings')('target')
-console.log(addon.fib(10));
+console.log(addon.foo(2));
 

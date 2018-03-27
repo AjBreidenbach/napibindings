@@ -10,7 +10,7 @@ var `env$`*: napi_env = nil
 
 type napi_value* = pointer
 type napi_callback_info* = pointer
-type napi_callback* = proc(env: napi_env, info: napi_callback_info): napi_value {.cdecl.}
+type napi_callback* = proc(environment: napi_env, info: napi_callback_info): napi_value {.cdecl.}
 type napi_property_attributes* = int
 type napi_property_descriptor* {.importc: "napi_property_descriptor", header:"<node_api.h>".} = object
   utf8name: cstring
@@ -46,14 +46,24 @@ type NapiStatus* {.importc: "napi_status".} = enum
   napi_cancelled
   napi_status_last
 
-type NapiNode* = ref object
+type Module* = ref object
   val*: napi_value
   env*: napi_env
   descriptors: seq[napi_property_descriptor]
 
-proc getInt*(n: napi_value): int =
-  proc napi_get_value_int64(e: napi_env, v: napi_value, res: ptr int): int {.header: "<node_api.h>".}
+proc getInt64*(n: napi_value): int64 =
+  proc napi_get_value_int64(e: napi_env, v: napi_value, res: ptr int64): int{.header: "<node_api.h>".}
   assess napi_get_value_int64(`env$`, n, addr result)
+
+proc getInt32*(n: napi_value): int32 =
+  proc napi_get_value_int32(e: napi_env, v: napi_value, res: ptr int32): int {.header: "<node_api.h>".}
+  assess napi_get_value_int32(`env$`, n, addr result)
+
+template getInt*(n: napi_value): int =
+  when sizeof(int) == 8:
+    int(n.getInt64())
+  else:
+    int(n.getInt32())
 
 proc getStr*(n: napi_value, bufsize: int = 40): string =
   proc napi_get_value_string_utf8(e: napi_env, v: napi_value, buf: cstring, bufsize: csize, res: ptr csize): int {.header: "<node_api.h>".}
@@ -65,14 +75,14 @@ proc getStr*(n: napi_value, bufsize: int = 40): string =
   return  ($buf)[0..res]
 
 
-proc newNodeValue*(val: napi_value, env: napi_env): NapiNode =
-  NapiNode(val: val, env: env, descriptors: @[])
+proc newNodeValue*(val: napi_value, env: napi_env): Module =
+  Module(val: val, env: env, descriptors: @[])
 
 proc kind*(env: napi_env, val: napi_value): NapiKind =
   proc napi_typeof (e: napi_env, v: napi_value, res: ptr NapiKind): int{.header: "<node_api.h>".}
   assess ( napi_typeof(env, val, addr result) )
 
-proc kind*(val: NapiNode): NapiKind =
+proc kind*(val: Module): NapiKind =
   kind(val.env, val.val)
 
 proc napi_define_properties(env: napi_env, val: napi_value, property_count: csize, properties: ptr napi_property_descriptor) {.header:"<node_api.h>".}
@@ -139,7 +149,7 @@ proc create*[T: int | uint | string](env: napi_env, a: openarray[(string, T)]): 
 
 proc create*(env: napi_env, v: napi_value): napi_value = v
 
-proc create*[T](n: NapiNode, t: T): napi_value =
+proc create*[T](n: Module, t: T): napi_value =
   n.env.create(t)
 
 proc hasOwnProperty*(env: napi_env, obj: napi_value, key: string): bool =
@@ -155,13 +165,13 @@ proc getProperty*(env: napi_env, obj: napi_value, key: string): napi_value =
 
 
 
-proc createFn(env: napi_env, fname: string, cb: napi_callback): napi_value =
+proc createFn*(env: napi_env, fname: string, cb: napi_callback): napi_value =
   proc napi_create_function(env: napi_env, utf8name: cstring, length: csize, cb: napi_callback, data: pointer, res: napi_value): int {.header:"<node_api.h>".}
   assess ( napi_create_function(env, fname, fname.len, cb, nil, addr result) )
 
 
 
-proc registerBase(obj: NapiNode, name: string, value: napi_value, attr: int) =
+proc registerBase(obj: Module, name: string, value: napi_value, attr: int) =
   obj.descriptors.add(
     napi_property_descriptor(
       utf8name: name,
@@ -170,51 +180,69 @@ proc registerBase(obj: NapiNode, name: string, value: napi_value, attr: int) =
     )
   )
 
-proc register*[T: int | uint | string | napi_value](obj: NapiNode, name: string, value: T, attr: int = 0) =
+proc register*[T: int | uint | string | napi_value](obj: Module, name: string, value: T, attr: int = 0) =
   obj.registerBase(name, create(obj.env, value), attr)
 
-proc register*[T: int | uint | string | napi_value](obj: NapiNode, name: string, values: openarray[T], attr: int = 0) =
+proc register*[T: int | uint | string | napi_value](obj: Module, name: string, values: openarray[T], attr: int = 0) =
   var elements =  newSeq[napi_value]()
   for v in values: elements.add(obj.create(v))
 
   obj.registerBase(name, create(obj.env, elements), attr)
 
-proc register*[T: int | uint | string | napi_value](obj: NapiNode, name: string, values: openarray[(string, T)], attr: int = 0) =
+proc register*[T: int | uint | string | napi_value](obj: Module, name: string, values: openarray[(string, T)], attr: int = 0) =
   var properties = newSeq[(string, napi_value)]()
   for v in values: properties.add((v[0], obj.create(v[1])))
 
   obj.registerBase(name, create(obj.env, properties), attr)
 
-proc register*(obj: NapiNode, name: string, cb: napi_callback) =
+proc register*(obj: Module, name: string, cb: napi_callback) =
   obj.registerBase(name, createFn(obj.env, name, cb), 0)
 
 
-template `%`*[T](t: T): untyped =
+template `%`*[T](t: T): napi_value =
   `env$`.create(t)
 
-template registerFn*(exports: NapiNode, name: string, paramCt = 10, cushy: untyped): untyped {.dirty.}=
-  block:
+macro getIdentStr*(n: untyped): string = $ident(n)
 
-    proc wrapper(environment: napi_env, i: napi_callback_info): napi_value {.cdecl.} =
+template fn*(paramCt: int, name, cushy: untyped): untyped {.dirty.} =
+  var name {.inject.}: napi_value
+  block:
+    proc wrapper(environment: napi_env, info: napi_callback_info): napi_value {.cdecl.} =
       var 
         `argv$`: napi_value
         argc: csize = paramCt
-        `this$`: napi_value
+        this: napi_value
+        args = newSeq[napi_value]()
+      `env$` = environment
+      assess napi_get_cb_info(environment, info, addr argc, addr `argv$`, addr this)
+      var `argsarray$` = cast[ptr UncheckedArray[napi_value]](addr `argv$`)
+      for i in 0..<argc:
+        args.add(`argsarray$`[][i])
+      cushy
+
+    name = createFn(`env$`, getIdentStr(name), wrapper)
+
+
+template registerFn*(exports: Module, paramCt = 10, name: string, cushy: untyped): untyped {.dirty.}=
+  block:
+    proc wrapper(environment: napi_env, info: napi_callback_info): napi_value {.cdecl.} =
+      var 
+        `argv$`: napi_value
+        argc: csize = paramCt
+        this: napi_value
         args = newSeq[napi_value]()
 
       `env$` = environment
 
-      assess napi_get_cb_info(environment, i, addr argc, addr `argv$`, addr `this$`)
+      assess napi_get_cb_info(environment, info, addr argc, addr `argv$`, addr this)
       var
         `argsarray$` = cast[ptr UncheckedArray[napi_value]](addr `argv$`)
-        this = newNodeValue(`this$`, environment)
       for i in 0..<argc:
-        #args.add(newNodeValue(`argsarray$`[][i], environment))
         args.add(`argsarray$`[][i])
       cushy
     exports.register(name, wrapper)
 
-proc defineProperties*(obj: NapiNode) =
+proc defineProperties*(obj: Module) =
   type DescriptorArray {.unchecked.} = array[0..0, napi_property_descriptor]
 
   var 
@@ -230,7 +258,7 @@ proc defineProperties*(obj: NapiNode) =
 
 ### high level bindings ###
 
-macro init*(initHook: proc(exports: NapiNode)): typed =
+macro init*(initHook: proc(exports: Module)): typed =
   var nimmain = newProc(ident("NimMain"))
   nimmain.addPragma(ident("importc"))
   var cinit = newProc(
@@ -248,9 +276,7 @@ macro init*(initHook: proc(exports: NapiNode)): typed =
   )
   cinit.addPragma(ident("exportc"))
   var emit = newNimNode(nnkPragma).add(newColonExpr(ident("emit"), newStrLitNode("NAPI_MODULE(NODE_GYP_MODULE_NAME, cinit)")))
-  var header = newNimNode(nnkPragma).add(newColonExpr(ident("emit"), newStrLitNode( """/*INCLUDESECTION*/ #include <node_api.h> """)))
   result = newStmtList(
     cinit,
-    emit,
-    header
+    emit
   )

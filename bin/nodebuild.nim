@@ -1,36 +1,41 @@
-### use projectfile.json for linking option
-##
 import json, docopt, os, sequtils
 
 
 const doc = """
 NodeBuild.
 Usage:
-  nodebuild <projectfile> <nimcache> [options]
+  nodebuild <projectfile> [options]
+
+Options:
+  -C          do not recompile projectfile
+  -r          release build
 """
+  #--nimcache=<dir>  
+# --rebuild   
 let args = docopt(doc)
 
 var 
   nimbase = (findExe("nim") /../ "" /../ "lib")
-  nimcache = $args["<nimcache>"]
+  nimcache = "nimcache"#$args["<nimcache>"]
   projectfile = $args["<projectfile>"]
   target = %* { "target_name": "target" }
   gyp = %* { "targets": [target] }
 
 
 
-#[if not args["--C"]:
-  var releaseFlag = if args["--r"]: " -d:release " else: ""
-  discard execShellCmd("nim c -c" & releaseFlag & "--compileOnly --noMain " & projectfile)
-  ]#
-  
-discard execShellCmd("nim c -c --compileOnly --noMain " & projectfile) #
+if not args["-C"]:
+  var releaseFlag = if args["-r"]: "-d:release " else: ""
+  discard execShellCmd("nim c " & releaseFlag & "--compileOnly --noMain " & projectfile)
+
+#discard execShellCmd("nim c -c --compileOnly --noMain " & projectfile) #
 
 
 
 target["include_dirs"] = %[ nimbase ]
 target["cflags"] = %["-w"]
-#if args["--r"]: target["cflags"].add(%"-O3")
+if args["-r"]:
+  target["cflags"].add(%"-O3")
+  target["cflags"].add(%"-fno-strict-aliasing")
 target["linkflags"] = %["-ldl"]
 
 

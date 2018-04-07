@@ -1,17 +1,19 @@
-import ../napi, macros
+import ../napibindings, sequtils
 
-proc fibonacci(n: int): int =
-  if n < 1: 1 else: fibonacci(n-1) + fibonacci(n-2)
 init proc(exports: Module) =
-  fn(1, fib):
-    % fibonacci(args[0].getInt)
+  exports.register("hello", "hello world")
 
-  #[exports.register("hello", %*{
-      "some_property": ["some value", "value", "other value", undefined(), null()],
-      "fib": fib
-  })
+  exports.registerFn(10, "addNums"):
+    %(args.mapIt(it.getInt).foldl(a + b))
 
-  exports.registerFn(5, "goodbye"):
-    % "fuck"
-  ]#
-  exports.register("fib", fib)
+  exports.registerFn(10, "createArray"):
+    result = % [5]
+    for n in 0..<args.len:
+      result[n] = args[n]
+  
+  exports.registerFn(3, "getOrDefault"):
+    ##``args[0]`` : array
+    ##``args[1]`` : index
+    ##``args[2]`` : default
+    args[0].getElement(args[1].getInt, args[2])
+

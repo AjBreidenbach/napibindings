@@ -14,10 +14,10 @@ let args = docopt(doc)
 
 var 
   projectfile = $args["<projectfile>"]
-  projectsplit = splitFile(projectfile)
+  project = splitFile(projectfile)
   nimbase = (findExe("nim") /../ "" /../ "lib")
-  nimcache = projectsplit.dir / "nimcache"#$args["<nimcache>"]
-  target = %* { "target_name": "target" }
+  nimcache = project.dir / "nimcache"#$args["<nimcache>"]
+  target = %* { "target_name": project.name }
   gyp = %* { "targets": [target] }
 
 
@@ -42,14 +42,14 @@ target["linkflags"] = %["-ldl"]
 var compiledpf = (projectfile).changeFileExt(".c")
 
 target["sources"] = %[]
-for targetobj in parsejson(readfile(nimcache / (projectsplit.name & ".json")))["link"]:
+for targetobj in parsejson(readfile(nimcache / (project.name & ".json")))["link"]:
   target["sources"].add(% ("nimcache" / targetobj.getstr.splitFile.name & ".c"))
 
 
-writeFile(projectsplit.dir / "binding.gyp", gyp.pretty)
+writeFile(project.dir / "binding.gyp", gyp.pretty)
 
 
-var gypflags = "--directory=" & projectsplit.dir
+var gypflags = "--directory=" & project.dir
 if not args["-r"]: gypflags.add(" --debug")
 
 assess "node-gyp", "node-gyp rebuild "  & gypflags

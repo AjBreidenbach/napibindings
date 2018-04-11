@@ -1,5 +1,5 @@
 const assert = require('assert')
-const addon = require('bindings')('target')
+const addon = require('bindings')('main')
 
 assert.equal(addon.hello, "hello world");
 assert.equal(addon.addNums(3, 3, 3), 9);

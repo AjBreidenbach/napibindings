@@ -8,7 +8,7 @@ If you don't yet have Nim installed, please visit https://nim-lang.org/install.h
 
 ### Prerequisites
 First of all, you will need to have Node installed with a version number no less than `8.0`.  N-API was introduced in this version and remains experimental.
-`napibuild` is a program distributed as a binary in this project which attempts to automate the process of creating `.node` addons from a nim project file.
+`napibuild` is a program distributed as a binary in this project which attempts to automate the process of creating `.node` addons from a Nim project file.
 
 
 `napibuild` depends on an npm package called `node-gyp` which can be installed via 

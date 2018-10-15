@@ -43,7 +43,7 @@ var compiledpf = (projectfile).changeFileExt(".c")
 
 target["sources"] = %[]
 for targetobj in parsejson(readfile(nimcache / (project.name & ".json")))["link"]:
-  target["sources"].add(% ("nimcache" / targetobj.getstr.splitFile.name & ".c"))
+  target["sources"].add(% ("nimcache" / targetobj.getstr.splitFile.name))
 
 
 writeFile(project.dir / "binding.gyp", gyp.pretty)

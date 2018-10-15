@@ -5,4 +5,4 @@ license  = "MIT"
 skipDirs  = @["test", ".git"]
 bin  = @["bin/napibuild"]
 
-requires "docopt >= 0.6"
+requires "https://github.com/docopt/docopt.nim#master"

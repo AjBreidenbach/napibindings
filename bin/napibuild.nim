@@ -28,7 +28,7 @@ template assess(name: string, cmd: string) =
 
 if not args["-C"]:
   var releaseFlag = if args["-r"]: "-d:release " else: "--embedsrc "
-  assess "nim c", "nim c " & releaseFlag & "--compileOnly --noMain " & projectfile
+  assess "nim c", "nim c --nimcache:" & nimcache & " " & releaseFlag & "--compileOnly --noMain " & projectfile
 
 
 target["include_dirs"] = %[ nimbase ]

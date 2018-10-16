@@ -198,7 +198,7 @@ proc getStr*(n: napi_value, bufsize: int = 40): string =
     res: csize
 
   assessStatus napi_get_value_string_utf8(`env$`, n, buf, bufsize, addr res)
-  return  ($buf)[0..res]
+  return  ($buf)[0..res-1]
 
 proc getStr*(n: napi_value, default: string, bufsize: int = 40): string =
   ##Retrieves utf8 encoded value from node; returns default on failure
@@ -210,7 +210,7 @@ proc getStr*(n: napi_value, default: string, bufsize: int = 40): string =
 
   try:
     assessStatus napi_get_value_string_utf8(`env$`, n, buf, bufsize, addr res)
-    result = ($buf)[0..res]
+    result = ($buf)[0..res-1]
   except: result = default
 
 proc hasProperty*(obj: napi_value, key: string): bool {.raises: [ValueError, NapiStatusError].} =

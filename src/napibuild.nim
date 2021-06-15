@@ -28,7 +28,7 @@ template assess(name: string, cmd: string) =
 
 if not args["-C"]:
   var releaseFlag = if args["-r"]: "-d:release " else: "--embedsrc "
-  assess "nim c", "nim c " & releaseFlag & "--compileOnly --noMain " & projectfile
+  assess "nim c", "nim c --nimcache:" & nimcache & " " & releaseFlag & "--compileOnly --noMain " & projectfile
 
 
 target["include_dirs"] = %[ nimbase ]
@@ -43,7 +43,7 @@ var compiledpf = (projectfile).changeFileExt(".c")
 
 target["sources"] = %[]
 for targetobj in parsejson(readfile(nimcache / (project.name & ".json")))["link"]:
-  target["sources"].add(% ("nimcache" / targetobj.getstr.splitFile.name & ".c"))
+  target["sources"].add(% ("nimcache" / targetobj.getstr.splitFile.name))
 
 
 writeFile(project.dir / "binding.gyp", gyp.pretty)

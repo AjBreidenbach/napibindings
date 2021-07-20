@@ -2,12 +2,10 @@ import json, docopt, os, sequtils
 
 const explicitSourcePath {.strdefine.} = os.parentDir(os.parentDir( os.getCurrentCompilerExe()))
 
-echo explicitSourcePath
-
 const doc = """
 NodeBuild.
 Usage:
-  nodebuild <projectfile> [options]
+  napibuild <projectfile> [options]
 
 Options:
   -C          do not recompile projectfile

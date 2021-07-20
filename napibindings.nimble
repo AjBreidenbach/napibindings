@@ -6,7 +6,7 @@ srcDir = "src"
 skipDirs  = @["test", ".git"]
 bin  = @["napibuild"]
 
-requires "https://github.com/docopt/docopt.nim#master"
+requires "docopt"
 
 task test,"test":
   withDir "test":

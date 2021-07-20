@@ -1,5 +1,8 @@
 import json, docopt, os, sequtils
 
+const explicitSourcePath {.strdefine.} = os.parentDir(os.parentDir( os.getCurrentCompilerExe()))
+
+echo explicitSourcePath
 
 const doc = """
 NodeBuild.
@@ -15,7 +18,7 @@ let args = docopt(doc)
 var 
   projectfile = $args["<projectfile>"]
   project = splitFile(projectfile)
-  nimbase = (findExe("nim") /../ "" /../ "lib")
+  nimbase = %* (explicitSourcePath / "lib" )
   nimcache = project.dir / "nimcache"#$args["<nimcache>"]
   target = %* { "target_name": project.name }
   gyp = %* { "targets": [target] }

@@ -7,3 +7,9 @@ skipDirs  = @["test", ".git"]
 bin  = @["napibuild"]
 
 requires "https://github.com/docopt/docopt.nim#master"
+
+task test,"test":
+#   withDir "test":
+#     exec "yarn install "
+  exec "nim c -r src/napibuild.nim test/main.nim"
+  exec "node test/index.js"

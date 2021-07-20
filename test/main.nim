@@ -1,4 +1,4 @@
-import ../napibindings, sequtils
+import napibindings, sequtils
 
 init proc(exports: Module) =
   exports.register("hello", "hello world")

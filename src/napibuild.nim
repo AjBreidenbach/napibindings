@@ -1,7 +1,7 @@
 import json, docopt, os, osproc
 
-const ExplicitSourcePath {.strdefine.} = os.parentDir(os.parentDir( os.getCurrentCompilerExe()))
-const LibPath = ExplicitSourcePath / "lib" 
+const ExplicitSourcePath {.strdefine.} = os.parentDir(os.parentDir(os.getCurrentCompilerExe()))
+const LibPath = ExplicitSourcePath / "lib"
 const doc = """
 NodeBuild.
 Usage:
@@ -14,13 +14,13 @@ Options:
 
 let args = docopt(doc)
 
-var 
+var
   projectfile = $args["<projectfile>"]
   project = splitFile(projectfile)
   nimbase = LibPath
-  nimcache = project.dir / "nimcache"#$args["<nimcache>"]
-  target = %* { "target_name": project.name }
-  gyp = %* { "targets": [target] }
+  nimcache = project.dir / "nimcache" #$args["<nimcache>"]
+  target = %* {"target_name": project.name}
+  gyp = %* {"targets": [target]}
 
 
 if not args["-C"]:
@@ -29,7 +29,7 @@ if not args["-C"]:
   doAssert r.exitCode == 0, r.output
 
 
-target["include_dirs"] = %[ nimbase ]
+target["include_dirs"] = %[nimbase]
 target["cflags"] = %["-w"]
 if args["-r"]:
   target["cflags"].add(%"-O3")
@@ -38,8 +38,7 @@ target["linkflags"] = %["-ldl"]
 
 target["sources"] = %[]
 for targetobj in parsejson(readfile(nimcache / (project.name & ".json")))["link"]:
-  target["sources"].add(% ("nimcache" / targetobj.getstr.splitFile.name))
-
+  target["sources"].add( % ("nimcache" / targetobj.getstr.splitFile.name))
 
 writeFile(project.dir / "binding.gyp", gyp.pretty)
 
@@ -47,5 +46,5 @@ writeFile(project.dir / "binding.gyp", gyp.pretty)
 var gypflags = "--directory=" & project.dir
 if not args["-r"]: gypflags.add(" --debug")
 
-let gypRebuild = execCmdEx "node-gyp rebuild "  & gypflags
-doAssert gypRebuild.exitCode == 0 , gypRebuild.output
+let gypRebuild = execCmdEx "node-gyp rebuild " & gypflags
+doAssert gypRebuild.exitCode == 0, gypRebuild.output

@@ -11,14 +11,14 @@ var `env$`*: napi_env = nil
 type napi_value* = pointer
 type napi_callback* = proc(environment: napi_env, info: pointer): napi_value {.cdecl.}
 type napi_property_attributes* = int
-type napi_property_descriptor {.header:"<node_api.h>".} = object
+type napi_property_descriptor {.header: "<node_api.h>".} = object
   utf8name: cstring
   name, value: napi_value
   attributes: napi_property_attributes
   `method`, getter, setter: napi_callback
   data: pointer
 
-type NapiKind* {.importc: "napi_valuetype", header:"<node_api.h>".}= enum
+type NapiKind* {.importc: "napi_valuetype", header: "<node_api.h>".} = enum
   napi_undefined
   napi_null
   napi_boolean
@@ -30,7 +30,7 @@ type NapiKind* {.importc: "napi_valuetype", header:"<node_api.h>".}= enum
   napi_external
   napi_valuetype
 
-type NapiStatus* {.importc: "napi_status", header:"<node_api.h>".} = enum
+type NapiStatus* {.importc: "napi_status", header: "<node_api.h>".} = enum
   napi_ok
   napi_invalid_arg
   napi_object_expected
@@ -47,7 +47,7 @@ type NapiStatus* {.importc: "napi_status", header:"<node_api.h>".} = enum
 
 
 proc assessStatus*(status: int) {.raises: [NapiStatusError].} =
-  ##Asserts that a call returns correctly; 
+  ##Asserts that a call returns correctly;
   if status != 0:
     raise newException(NapiStatusError, "NAPI call returned non-zero status (" & $status & ": " & $NapiStatus(status) & ")")
 
@@ -67,50 +67,52 @@ proc newNodeValue*(val: napi_value, env: napi_env): Module =
 
 proc kind(env: napi_env, val: napi_value): NapiKind =
   proc napi_typeof (e: napi_env, v: napi_value, res: ptr NapiKind): int{.header: "<node_api.h>".}
-  assessStatus ( napi_typeof(env, val, addr result) )
+  assessStatus (napi_typeof(env, val, addr result))
 
   ##Used internally, disregard
 
-var napi_default {.header:"<node_api.h>".}: napi_property_attributes
+var napi_default {.header: "<node_api.h>".}: napi_property_attributes
 
 
 
 proc create(env: napi_env, n: int32): napi_value =
-  proc napi_create_int32(env: napi_env, n: cint, val: ptr napi_value): int {.header:"<node_api.h>".}
-  assessStatus ( napi_create_int32(env, n, addr result) )
+  proc napi_create_int32(env: napi_env, n: cint, val: ptr napi_value): int {.header: "<node_api.h>".}
+  assessStatus (napi_create_int32(env, n, addr result))
 
 proc create(env: napi_env, n: int64): napi_value =
-  proc napi_create_int64(env: napi_env, n: int64, val: ptr napi_value): int {.header:"<node_api.h>".}
-  assessStatus ( napi_create_int64(env, n, addr result) )
+  proc napi_create_int64(env: napi_env, n: int64, val: ptr napi_value): int {.header: "<node_api.h>".}
+  assessStatus (napi_create_int64(env, n, addr result))
 
 proc create(env: napi_env, n: uint32): napi_value =
-  proc napi_create_uint32(env: napi_env, n: uint32, val: ptr napi_value): int {.header:"<node_api.h>".}
-  assessStatus ( napi_create_uint32(env, n, addr result) )
+  proc napi_create_uint32(env: napi_env, n: uint32, val: ptr napi_value): int {.header: "<node_api.h>".}
+  assessStatus (napi_create_uint32(env, n, addr result))
 
 proc create(env: napi_env, n: uint64): napi_value =
-  proc napi_create_uint64(env: napi_env, n: uint64, val: ptr napi_value): int {.header:"<node_api.h>".}
-  assessStatus ( napi_create_uint64(env, n, addr result) )
+  proc napi_create_uint64(env: napi_env, n: uint64, val: ptr napi_value): int {.header: "<node_api.h>".}
+  assessStatus (napi_create_uint64(env, n, addr result))
 
 proc create(env: napi_env, n: float64): napi_value =
-  proc napi_create_double(env: napi_env, n: float64, val: ptr napi_value): int {.header:"<node_api.h>".}
-  assessStatus ( napi_create_double(env, n, addr result) )
+  proc napi_create_double(env: napi_env, n: float64, val: ptr napi_value): int {.header: "<node_api.h>".}
+  assessStatus (napi_create_double(env, n, addr result))
 
 proc create(env: napi_env, s: string): napi_value =
-  proc napi_create_string_utf8(env: napi_env, str: cstring, length: csize, val: ptr napi_value): int {.header:"<node_api.h>".}
-  assessStatus ( napi_create_string_utf8(env, s, s.len, addr result) )
+  proc napi_create_string_utf8(env: napi_env, str: cstring, length: csize, val: ptr napi_value): int {.
+      header: "<node_api.h>".}
+  assessStatus (napi_create_string_utf8(env, s, s.len, addr result))
 
 proc create(env: napi_env, p: openarray[(string, napi_value)]): napi_value =
-  proc napi_create_object(env: napi_env, res: ptr napi_value): int {.header:"<node_api.h>".}
-  proc napi_set_named_property(env: napi_env, obj: napi_value, utf8name: cstring, value: napi_value): int {.header:"<node_api.h>".}
+  proc napi_create_object(env: napi_env, res: ptr napi_value): int {.header: "<node_api.h>".}
+  proc napi_set_named_property(env: napi_env, obj: napi_value, utf8name: cstring, value: napi_value): int {.
+      header: "<node_api.h>".}
   assessStatus napi_create_object(env, addr result)
   for name, val in items(p):
     assessStatus napi_set_named_property(env, result, name, val)
 
 
 proc create(env: napi_env, a: openarray[napi_value]): napi_value =
-  proc napi_create_array_with_length(e: napi_env, length: csize, res: ptr napi_value): int {.header:"<node_api.h>".}
-  proc napi_set_element(e: napi_env, o: napi_value, index: csize, value: napi_value): int {.header:"<node_api.h>".}
-  assessStatus( napi_create_array_with_length(env, a.len, addr result) )
+  proc napi_create_array_with_length(e: napi_env, length: csize, res: ptr napi_value): int {.header: "<node_api.h>".}
+  proc napi_set_element(e: napi_env, o: napi_value, index: csize, value: napi_value): int {.header: "<node_api.h>".}
+  assessStatus(napi_create_array_with_length(env, a.len, addr result))
   for i, elem in a.enumerate: assessStatus napi_set_element(env, result, i, a[i])
 
 proc create[T: int | uint | string](env: napi_env, a: openarray[T]): napi_value =
@@ -125,8 +127,9 @@ proc create[T: int | uint | string](env: napi_env, a: openarray[(string, T)]): n
   env.create(a)
 
 proc createFn*(env: napi_env, fname: string, cb: napi_callback): napi_value =
-  proc napi_create_function(env: napi_env, utf8name: cstring, length: csize, cb: napi_callback, data: pointer, res: napi_value): int {.header:"<node_api.h>".}
-  assessStatus ( napi_create_function(env, fname, fname.len, cb, nil, addr result) )
+  proc napi_create_function(env: napi_env, utf8name: cstring, length: csize, cb: napi_callback, data: pointer,
+      res: napi_value): int {.header: "<node_api.h>".}
+  assessStatus (napi_create_function(env, fname, fname.len, cb, nil, addr result))
 
 proc create(env: napi_env, v: napi_value): napi_value = v
 
@@ -192,19 +195,21 @@ proc getStr*(n: napi_value, bufsize: int = 40): string =
   ##Retrieves utf8 encoded value from node; raises exception on failure
   ##
   ##Maximum return string length is equal to ``bufsize``
-  proc napi_get_value_string_utf8(e: napi_env, v: napi_value, buf: cstring, bufsize: csize, res: ptr csize): int {.header: "<node_api.h>".}
-  var 
+  proc napi_get_value_string_utf8(e: napi_env, v: napi_value, buf: cstring, bufsize: csize, res: ptr csize): int {.
+      header: "<node_api.h>".}
+  var
     buf = cast[cstring](alloc(bufsize))
     res: csize
 
   assessStatus napi_get_value_string_utf8(`env$`, n, buf, bufsize, addr res)
-  return  ($buf)[0..res-1]
+  return ($buf)[0..res-1]
 
 proc getStr*(n: napi_value, default: string, bufsize: int = 40): string =
   ##Retrieves utf8 encoded value from node; returns default on failure
   ##Maximum return string length is equal to ``bufsize``
-  proc napi_get_value_string_utf8(e: napi_env, v: napi_value, buf: cstring, bufsize: csize, res: ptr csize): int {.header: "<node_api.h>".}
-  var 
+  proc napi_get_value_string_utf8(e: napi_env, v: napi_value, buf: cstring, bufsize: csize, res: ptr csize): int {.
+      header: "<node_api.h>".}
+  var
     buf = cast[cstring](alloc(bufsize))
     res: csize
 
@@ -217,14 +222,16 @@ proc hasProperty*(obj: napi_value, key: string): bool {.raises: [ValueError, Nap
   ##Checks whether or not ``obj`` has a property ``key``; Panics if ``obj`` is not an object
   if kind(obj) != napi_object: raise newException(ValueError, "value is not an object")
 
-  proc napi_has_named_property(env: napi_env, obj: napi_value, key: cstring, res: ptr bool): int {.header:"<node_api.h>".}
+  proc napi_has_named_property(env: napi_env, obj: napi_value, key: cstring, res: ptr bool): int {.
+      header: "<node_api.h>".}
   assessStatus napi_has_named_property(`env$`, obj, (key), addr result)
 
 
-proc getProperty*(obj: napi_value, key: string): napi_value {.raises: [KeyError, ValueError, NapiStatusError].}=
+proc getProperty*(obj: napi_value, key: string): napi_value {.raises: [KeyError, ValueError, NapiStatusError].} =
   ##Retrieves property ``key`` from ``obj``; Panics if ``obj`` is not an object
   if not hasProperty(obj, key): raise newException(KeyError, "property not contained for key " & key)
-  proc napi_get_named_property(env: napi_env, obj: napi_value, key: cstring, res: ptr napi_value): int {.header:"<node_api.h>".}
+  proc napi_get_named_property(env: napi_env, obj: napi_value, key: cstring, res: ptr napi_value): int {.
+      header: "<node_api.h>".}
   assessStatus napi_get_named_property(`env$`, obj, (key), addr result)
 
 proc getProperty*(obj: napi_value, key: string, default: napi_value): napi_value =
@@ -232,10 +239,11 @@ proc getProperty*(obj: napi_value, key: string, default: napi_value): napi_value
   try: obj.getProperty(key)
   except: default
 
-proc setProperty*(obj: napi_value, key: string, value: napi_value) {.raises: [ValueError, NapiStatusError].}=
+proc setProperty*(obj: napi_value, key: string, value: napi_value) {.raises: [ValueError, NapiStatusError].} =
   ##Sets property ``key`` in ``obj`` to ``value``; raises exception if ``obj`` is not an object
   if kind(obj) != napi_object: raise newException(ValueError, "value is not an object")
-  proc napi_set_named_property(env: napi_env, obj: napi_value, key: cstring, value: napi_value): int{.header: "<node_api.h>".}
+  proc napi_set_named_property(env: napi_env, obj: napi_value, key: cstring, value: napi_value): int{.
+      header: "<node_api.h>".}
   assessStatus napi_set_named_property(`env$`, obj, key, value)
 
 proc `[]`*(obj: napi_value, key: string): napi_value =
@@ -260,7 +268,8 @@ proc hasElement*(obj: napi_value, index: int): bool =
 proc getElement*(obj: napi_value, index: int): napi_value =
   ##Retrieves value from ``index`` in  ``obj``; raises exception if ``obj`` is not an array or ``index`` is out of bounds
   if not hasElement(obj, index): raise newException(IndexError, "index out of bounds")
-  proc napi_get_element(env: napi_env, obj: napi_value, index: uint32, res: ptr napi_value): int {.header: "<node_api.h>".}
+  proc napi_get_element(env: napi_env, obj: napi_value, index: uint32, res: ptr napi_value): int {.
+      header: "<node_api.h>".}
   assessStatus napi_get_element(`env$`, obj, uint32 index, addr result)
 
 proc getElement*(obj: napi_value, index: int, default: napi_value): napi_value =
@@ -270,7 +279,8 @@ proc getElement*(obj: napi_value, index: int, default: napi_value): napi_value =
 proc setElement*(obj: napi_value, index: int, value: napi_value) =
   ##Sets value at ``index``; raises exception if ``obj`` is not an array
   if not isArray(obj): raise newException(ValueError, "value is not an array")
-  proc napi_set_element(env: napi_env, obj: napi_value, index: uint32, value: napi_value): int {.header: "<node_api.h>".}
+  proc napi_set_element(env: napi_env, obj: napi_value, index: uint32, value: napi_value): int {.
+      header: "<node_api.h>".}
   assessStatus napi_set_element(`env$`, obj, uint32 index, value)
 
 proc `[]`*(obj: napi_value, index: int): napi_value =
@@ -292,8 +302,6 @@ proc undefined*: napi_value =
 
 
 
-
-
 proc registerBase(obj: Module, name: string, value: napi_value, attr: int) =
   obj.descriptors.add(
     napi_property_descriptor(
@@ -309,12 +317,13 @@ proc register*[T: int | uint | string | napi_value](obj: Module, name: string, v
 
 proc register*[T: int | uint | string | napi_value](obj: Module, name: string, values: openarray[T], attr: int = 0) =
   ##Adds field to exports object ``obj``
-  var elements =  newSeq[napi_value]()
+  var elements = newSeq[napi_value]()
   for v in values: elements.add(obj.create(v))
 
   obj.registerBase(name, create(obj.env, elements), attr)
 
-proc register*[T: int | uint | string | napi_value](obj: Module, name: string, values: openarray[(string, T)], attr: int = 0) =
+proc register*[T: int | uint | string | napi_value](obj: Module, name: string, values: openarray[(string, T)],
+    attr: int = 0) =
   ##Adds field to exports object ``obj``
   var properties = newSeq[(string, napi_value)]()
   for v in values: properties.add((v[0], obj.create(v[1])))
@@ -331,16 +340,18 @@ proc `%`*[T](t: T): napi_value =
 const emptyArr: array[0, (string, napi_value)] = []
 
 proc callFunction*(fn: napi_value, args: openarray[napi_value] = [], this = %emptyArr): napi_value =
-  proc napi_call_function(env: napi_env, recv, fn: napi_value, argc: cint, argv, res: ptr napi_value): int {.header:"<node_api.h>".}
-  assessStatus napi_call_function(`env$`, this, fn,  cint args.len, cast[ptr napi_value](args.toUnchecked()), addr result)
+  proc napi_call_function(env: napi_env, recv, fn: napi_value, argc: cint, argv, res: ptr napi_value): int {.
+      header: "<node_api.h>".}
+  assessStatus napi_call_function(`env$`, this, fn, cint args.len, cast[ptr napi_value](args.toUnchecked()), addr result)
 
 
 template fn*(paramCt: int, name, cushy: untyped): untyped {.dirty.} =
   var name {.inject.}: napi_value
   block:
-    proc napi_get_cb_info(env: napi_env, cbinfo: pointer, argc: ptr csize, argv: pointer, this: napi_value, data: pointer = nil): int {.header:"<node_api.h>".}
+    proc napi_get_cb_info(env: napi_env, cbinfo: pointer, argc: ptr csize, argv: pointer, this: napi_value,
+        data: pointer = nil): int {.header: "<node_api.h>".}
     proc `wrapper$`(environment: napi_env, info: pointer): napi_value {.cdecl.} =
-      var 
+      var
         `argv$` = cast[ptr UncheckedArray[napi_value]](alloc(paramCt * sizeof(napi_value)))
         argc: csize = paramCt
         this: napi_value
@@ -355,11 +366,12 @@ template fn*(paramCt: int, name, cushy: untyped): untyped {.dirty.} =
     name = createFn(`env$`, name, `wrapper$`)
 
 
-template registerFn*(exports: Module, paramCt: int, name: string, cushy: untyped): untyped {.dirty.}=
+template registerFn*(exports: Module, paramCt: int, name: string, cushy: untyped): untyped {.dirty.} =
   block:
-    proc napi_get_cb_info(env: napi_env, cbinfo: pointer, argc: ptr csize, argv: pointer, this: napi_value, data: pointer = nil): int {.header:"<node_api.h>".}
+    proc napi_get_cb_info(env: napi_env, cbinfo: pointer, argc: ptr csize, argv: pointer, this: napi_value,
+        data: pointer = nil): int {.header: "<node_api.h>".}
     proc `wrapper$`(environment: napi_env, info: pointer): napi_value {.cdecl.} =
-      var 
+      var
         `argv$` = cast[ptr UncheckedArray[napi_value]](alloc(paramCt * sizeof(napi_value)))
         argc: csize = paramCt
         this: napi_value
@@ -375,8 +387,10 @@ template registerFn*(exports: Module, paramCt: int, name: string, cushy: untyped
 
 
 proc defineProperties*(obj: Module) =
-  proc napi_define_properties(env: napi_env, val: napi_value, property_count: csize, properties: ptr napi_property_descriptor): int {.header:"<node_api.h>".}
-  assessStatus napi_define_properties(obj.env, obj.val, obj.descriptors.len, cast[ptr napi_property_descriptor](obj.descriptors.toUnchecked))
+  proc napi_define_properties(env: napi_env, val: napi_value, property_count: csize,
+      properties: ptr napi_property_descriptor): int {.header: "<node_api.h>".}
+  assessStatus napi_define_properties(obj.env, obj.val, obj.descriptors.len, cast[ptr napi_property_descriptor](
+      obj.descriptors.toUnchecked))
 
 
 
@@ -416,7 +430,8 @@ macro init*(initHook: proc(exports: Module)): typed =
   nimmain.addPragma(ident("importc"))
   var cinit = newProc(
     name = ident("cinit"),
-    params = [ident("napi_value") , newIdentDefs(ident("environment"), ident("napi_env")), newIdentDefs(ident("exportsPtr"), ident("napi_value"))],
+    params = [ident("napi_value"), newIdentDefs(ident("environment"), ident("napi_env")), newIdentDefs(ident(
+        "exportsPtr"), ident("napi_value"))],
     body = newStmtList(
       nimmain,
       newCall("NimMain"),
@@ -430,6 +445,7 @@ macro init*(initHook: proc(exports: Module)): typed =
   cinit.addPragma(ident("exportc"))
   result = newStmtList(
     cinit,
-    newNimNode(nnkPragma).add(newColonExpr(ident("emit"), newStrLitNode("""/*VARSECTION*/ NAPI_MODULE(NODE_GYP_MODULE_NAME, cinit)"""))),
+    newNimNode(nnkPragma).add(newColonExpr(ident("emit"), newStrLitNode(
+        """/*VARSECTION*/ NAPI_MODULE(NODE_GYP_MODULE_NAME, cinit)"""))),
   )
 

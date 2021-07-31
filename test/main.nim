@@ -5,6 +5,9 @@ init proc(exports: Module) =
 
   exports.registerFn(10, "addNums"):
     result = %(args.mapIt(it.getInt).foldl(a + b))
+  
+  exports.registerFn(0, "createObject"):
+    result = %* {"b": 1}
 
   exports.registerFn(10, "createArray"):
     result = % [5]

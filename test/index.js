@@ -15,3 +15,6 @@ try{
     assert.strictEqual(e.message,'value error')
 }
 
+
+const obj = addon.createObject()
+assert.deepEqual(obj,{b:1})

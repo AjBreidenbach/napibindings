@@ -4,11 +4,14 @@
   "description": "nim napi test",
   "main": "index.js",
   "scripts": {
+    "install": "prebuild-install",
+    "build": "prebuild -r node",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bindings": "^1.5.0"
+    "bindings": "^1.5.0",
+    "prebuild-install": "^6.0.0"
   }
 }

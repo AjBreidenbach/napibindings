@@ -1,7 +1,5 @@
 import macros
 
-type NapiStatusError = object of Exception
-
 type napi_env* = pointer
 
 var `env$`*: napi_env = nil
@@ -45,13 +43,13 @@ type NapiStatus* {.importc: "napi_status", header: "<node_api.h>".} = enum
   napi_cancelled
   napi_status_last
 
+type NapiStatusError* = ref object of CatchableError
+  status*: NapiStatus
 
 proc assessStatus*(status: int) {.raises: [NapiStatusError].} =
   ##Asserts that a call returns correctly;
   if status != 0:
-    raise newException(NapiStatusError, "NAPI call returned non-zero status (" & $status & ": " & $NapiStatus(status) & ")")
-
-
+    raise NapiStatusError(msg: "NAPI call returned non-zero status", status: NapiStatus(status))
 
 type Module* = ref object
   val*: napi_value
@@ -361,7 +359,12 @@ template fn*(paramCt: int, name, cushy: untyped): untyped {.dirty.} =
       for i in 0..<min(argc, paramCt):
         args.add(`argv$`[][i])
       dealloc(`argv$`)
-      cushy
+      try:
+        cushy
+      except NapiStatusError:
+        discard
+      except:
+        propagateExceptionToJS()
 
     name = createFn(`env$`, name, `wrapper$`)
 
@@ -382,7 +385,12 @@ template registerFn*(exports: Module, paramCt: int, name: string, cushy: untyped
       for i in 0..<min(argc, paramCt):
         args.add(`argv$`[][i])
       dealloc(`argv$`)
-      cushy
+      try:
+        cushy
+      except NapiStatusError:
+         discard
+      except:
+        propagateExceptionToJS()
     exports.register(name, `wrapper$`)
 
 
@@ -392,12 +400,21 @@ proc defineProperties*(obj: Module) =
   assessStatus napi_define_properties(obj.env, obj.val, obj.descriptors.len, cast[ptr napi_property_descriptor](
       obj.descriptors.toUnchecked))
 
+proc throwNapiError*(msg: string) =
+  proc napi_throw_error(env: napi_env, code, msg: cstring): int {.header:"<node_api.h>".}
+  discard napi_throw_error(`env$`, "".cstring, msg.cstring)
 
-
-
-
-
-
+proc propagateExceptionToJS*() =
+  let e = getCurrentException()
+  let frames = e.getStackTraceEntries()
+  var msg = e.msg
+  for i in countdown(frames.len - 2, 0):
+    let frame = frames[i]
+    msg = msg & "\n    at " &
+      $frame.procname & " (" &
+      $frame.filename & ":" &
+      $frame.line & ")"
+  throwNapiError msg
 
 proc napiCreate*[T](t: T): napi_value =
   `env$`.create(t)

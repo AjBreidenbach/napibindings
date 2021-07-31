@@ -7,3 +7,11 @@ assert.deepStrictEqual(addon.createArray('jim', 'bob', 3), ['jim', 'bob', 3])
 
 assert.strictEqual(addon.getOrDefault([1, 2, 3], 0/*index*/, 'unexpected'/*default*/), 1)
 assert.strictEqual(addon.getOrDefault([1, 2, 3], 5/*index*/, 'expected'/*default*/), 'expected')
+
+try{
+    addon.raiseError()
+}catch(e){
+    assert.strictEqual(e.name,'Error')
+    assert.strictEqual(e.message,'value error')
+}
+

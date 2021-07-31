@@ -24,8 +24,9 @@ var
 
 
 if not args["-C"]:
-  var releaseFlag = if args["-r"]: "-d:release " else: "--embedsrc "
-  let r = execCmdEx "nim c --nimcache:" & nimcache & " " & releaseFlag & "--compileOnly --noMain " & projectfile
+  let releaseFlag = if args["-r"]: "-d:release " else: "--embedsrc "
+  let vccFlag = when defined(windows): " --cc:vcc " else: ""
+  let r = execCmdEx "nim c " & vccFlag & " --nimcache:" & nimcache & " " & releaseFlag & "--compileOnly --noMain " & projectfile
   doAssert r.exitCode == 0, r.output
 
 
@@ -46,5 +47,5 @@ writeFile(project.dir / "binding.gyp", gyp.pretty)
 var gypflags = "--directory=" & project.dir
 if not args["-r"]: gypflags.add(" --debug")
 
-let gypRebuild = execCmdEx "node-gyp rebuild " & gypflags
+let gypRebuild = execCmdEx findExe("node-gyp") & " rebuild " & gypflags
 doAssert gypRebuild.exitCode == 0, gypRebuild.output

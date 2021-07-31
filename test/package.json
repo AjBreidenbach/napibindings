@@ -3,13 +3,31 @@
   "version": "0.0.0",
   "description": "nim napi test",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bung87/napibindings.git"
+  },
   "scripts": {
     "install": "prebuild-install",
-    "build": "prebuild -r node",
+    "build": "prebuild",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "binary": {
+    "napi_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+    ]
   },
   "author": "",
   "license": "ISC",
+  "devDependencies": {
+    "prebuild": "^10.0.1"
+  },
   "dependencies": {
     "bindings": "^1.5.0",
     "prebuild-install": "^6.0.0"

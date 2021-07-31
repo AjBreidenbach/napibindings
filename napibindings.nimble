@@ -7,9 +7,8 @@ skipDirs  = @["test", ".git"]
 bin  = @["napibuild"]
 
 requires "docopt"
-
+import os
 task test,"test":
-  withDir "test":
-    exec "yarn install --ignore-scripts"
-  exec "nim c -r src/napibuild.nim test/main.nim"
-  exec "node test/index.js"
+  exec findExe("yarn") & " install --ignore-scripts --cwd test"
+  selfExec "c -r " & "src" / "napibuild.nim" & " -r " & "test" / "main.nim"
+  exec findExe("node") &  " " & "test" / "index.js"

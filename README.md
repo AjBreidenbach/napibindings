@@ -1,4 +1,4 @@
-# NapiBindings
+# NapiBindings  [![build-test](https://github.com/bung87/napibindings/actions/workflows/build-test.yml/badge.svg)](https://github.com/bung87/napibindings/actions/workflows/build-test.yml)  
 Bindings between Nim and N-API
 
 ## Getting started	

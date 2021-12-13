@@ -1,0 +1,54 @@
+name: build-test
+
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'    
+  push:    
+    paths-ignore:
+      - '**.md'
+      
+jobs:
+  build:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        # 10.x, 12.x,
+        node-version: [ 12.x]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      
+      - uses: jiro4989/setup-nim-action@v1
+        with:
+          nim-version: '1.4.8' # default is
+      - name: Install nim deps
+        run: nimble install -d -y
+      - name: Setup node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install node deps
+        run: |
+          npm install -g node-gyp
+          yarn install --ignore-scripts
+        working-directory: test
+      - name: test
+        run: nimble test
+      
+      - name: Check if Git tag exists
+        run: echo "::set-env name=HEAD_TAG::$(git tag --points-at HEAD)"
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+      - name: build
+        run: yarn build
+        if: env.HEAD_TAG != '' 
+        working-directory: test
+      - name: publish
+        if: env.HEAD_TAG != '' 
+        working-directory: test
+        env:
+          PREBUILD_TOKEN: ${{ secrets.PREBUILD_TOKEN }}
+        run: yarn prebuild --upload-all ${{ secrets.PREBUILD_TOKEN }}

@@ -1,10 +1,13 @@
-import ../napibindings, sequtils
+import napibindings, sequtils
 
 init proc(exports: Module) =
   exports.register("hello", "hello world")
 
   exports.registerFn(10, "addNums"):
-    %(args.mapIt(it.getInt).foldl(a + b))
+    result = %(args.mapIt(it.getInt).foldl(a + b))
+  
+  exports.registerFn(0, "createObject"):
+    result = %* {"b": 1}
 
   exports.registerFn(10, "createArray"):
     result = % [5]
@@ -15,5 +18,8 @@ init proc(exports: Module) =
     ##``args[0]`` : array
     ##``args[1]`` : index
     ##``args[2]`` : default
-    args[0].getElement(args[1].getInt, args[2])
+    result = args[0].getElement(args[1].getInt, args[2])
+
+  exports.registerFn(0,"raiseError"):
+    raise newException(ValueError,"value error")
 

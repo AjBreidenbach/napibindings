@@ -1,50 +1,45 @@
-import json, docopt, os, sequtils
+import json, docopt, os, osproc
 
-
+const ExplicitSourcePath {.strdefine.} = os.parentDir(os.parentDir(os.getCurrentCompilerExe()))
+const LibPath = ExplicitSourcePath / "lib"
 const doc = """
 NodeBuild.
 Usage:
-  nodebuild <projectfile> [options]
+  napibuild <projectfile> [options]
 
 Options:
   -C          do not recompile projectfile
   -r          release build
 """
+
 let args = docopt(doc)
 
-var 
+var
   projectfile = $args["<projectfile>"]
   project = splitFile(projectfile)
-  nimbase = (findExe("nim") /../ "" /../ "lib")
-  nimcache = project.dir / "nimcache"#$args["<nimcache>"]
-  target = %* { "target_name": project.name }
-  gyp = %* { "targets": [target] }
-
-
-template assess(name: string, cmd: string) =
-  var status = execShellCmd(cmd)
-  doAssert status == 0, "exit with nonzero status: " & $status & " for command " & cmd
+  nimbase = LibPath
+  nimcache = project.dir / "nimcache" #$args["<nimcache>"]
+  target = %* {"target_name": project.name}
+  gyp = %* {"targets": [target]}
 
 
 if not args["-C"]:
-  var releaseFlag = if args["-r"]: "-d:release " else: "--embedsrc "
-  assess "nim c", "nim c --nimcache:" & nimcache & " " & releaseFlag & "--compileOnly --noMain " & projectfile
+  let releaseFlag = if args["-r"]: "-d:release " else: "--embedsrc "
+  let vccFlag = when defined(windows): " --cc:vcc " else: ""
+  let r = execCmdEx "nim c " & vccFlag & " --nimcache:" & nimcache & " " & releaseFlag & "--compileOnly --noMain " & projectfile
+  doAssert r.exitCode == 0, r.output
 
 
-target["include_dirs"] = %[ nimbase ]
+target["include_dirs"] = %[nimbase]
 target["cflags"] = %["-w"]
 if args["-r"]:
   target["cflags"].add(%"-O3")
   target["cflags"].add(%"-fno-strict-aliasing")
 target["linkflags"] = %["-ldl"]
 
-
-var compiledpf = (projectfile).changeFileExt(".c")
-
 target["sources"] = %[]
 for targetobj in parsejson(readfile(nimcache / (project.name & ".json")))["link"]:
-  target["sources"].add(% ("nimcache" / targetobj.getstr.splitFile.name))
-
+  target["sources"].add( % ("nimcache" / targetobj.getstr.splitFile.name))
 
 writeFile(project.dir / "binding.gyp", gyp.pretty)
 
@@ -52,4 +47,5 @@ writeFile(project.dir / "binding.gyp", gyp.pretty)
 var gypflags = "--directory=" & project.dir
 if not args["-r"]: gypflags.add(" --debug")
 
-assess "node-gyp", "node-gyp rebuild "  & gypflags
+let gypRebuild = execCmdEx findExe("node-gyp") & " rebuild " & gypflags
+doAssert gypRebuild.exitCode == 0, gypRebuild.output

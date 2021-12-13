@@ -1,4 +1,4 @@
-# NapiBindings
+# NapiBindings  [![build-test](https://github.com/bung87/napibindings/actions/workflows/build-test.yml/badge.svg)](https://github.com/bung87/napibindings/actions/workflows/build-test.yml)  
 Bindings between Nim and N-API
 
 ## Getting started	
@@ -20,30 +20,8 @@ Consequently, `node-gyp` requires `python 2.x`, while version `2.7` is recommend
 
 
 ### Installing
-To install this library and `napibuild`
-```bash
-git clone https://github.com/AjBreidenbach/napibindings.git
-cd napibindings
-nimble install
-```
 
-Enter `y` and you're finished
-
-To run all tests
-```bash
-cd test/
-npm install
-napibuild main.nim
-node index.js
-cd ../
-```
-To view the documentation
-```bash
-nim doc napibindings.nim && google-chrome napibindings.html > /dev/null &
-
-```
-
-
+`nimble install https://github.com/bung87/napibindings`
 
 ### Creating a new simple project
 Start by running `npm init` and entering information as prompted

@@ -6,4 +6,9 @@ srcDir = "src"
 skipDirs  = @["test", ".git"]
 bin  = @["napibuild"]
 
-requires "https://github.com/docopt/docopt.nim#master"
+requires "docopt"
+import os
+task test,"test":
+  exec findExe("yarn") & " install --ignore-scripts --cwd test"
+  selfExec "c -r " & "src" / "napibuild.nim" & " -r " & "test" / "main.nim"
+  exec findExe("node") &  " " & "test" / "index.js"
